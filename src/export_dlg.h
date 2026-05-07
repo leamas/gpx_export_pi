@@ -37,8 +37,10 @@ public:
 private:
   void OnSend(wxCommandEvent& event);
   void OnCancel(wxCommandEvent& event);
+  void OnAnonymousChanged(wxCommandEvent& event);
 
   void LoadSettings();
+  void UpdateAnonymousControls();
   void SaveSettings() const;
   void AppendLog(const wxString& line);
 
@@ -49,6 +51,7 @@ private:
   wxTextCtrl* m_server;
   wxTextCtrl* m_username;
   wxTextCtrl* m_password;
+  wxCheckBox* m_anonymous;
   wxTextCtrl* m_directory;
   wxTextCtrl* m_filename;
   wxTextCtrl* m_log;

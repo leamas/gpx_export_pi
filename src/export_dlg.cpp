@@ -44,12 +44,14 @@ enum {
   ID_BTN_OPTIONS_CANCEL,
   ID_BTN_FTP_SEND,
   ID_BTN_FTP_CANCEL,
+  ID_FTP_ANONYMOUS,
   ID_LIMIT_NAME_LENGTH,
 };
 
 wxBEGIN_EVENT_TABLE(FtpSendDialog, wxDialog)
     EVT_BUTTON(ID_BTN_FTP_SEND, FtpSendDialog::OnSend)
     EVT_BUTTON(ID_BTN_FTP_CANCEL, FtpSendDialog::OnCancel)
+    EVT_CHECKBOX(ID_FTP_ANONYMOUS, FtpSendDialog::OnAnonymousChanged)
 wxEND_EVENT_TABLE()
 
 wxBEGIN_EVENT_TABLE(GpxOptionsDialog, wxDialog)
@@ -340,6 +342,10 @@ FtpSendDialog::FtpSendDialog(wxWindow* parent, wxFileConfig* config,
   passSizer->Add(m_password, 1, wxEXPAND);
   settingsBox->Add(passSizer, 0, wxEXPAND | wxALL, 4);
 
+  m_anonymous = new wxCheckBox(this, ID_FTP_ANONYMOUS,
+                               wxT("Use anonymous FTP"));
+  settingsBox->Add(m_anonymous, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 4);
+
   auto* dirSizer = new wxBoxSizer(wxHORIZONTAL);
   dirSizer->Add(new wxStaticText(this, wxID_ANY, wxT("Directory:")), 0,
                 wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
@@ -381,10 +387,21 @@ void FtpSendDialog::LoadSettings() {
   wxString old_path = cfg->GetPath();
   cfg->SetPath(kFtpConfigPath);
   m_server->SetValue(cfg->Read(wxT("Server"), wxEmptyString));
-  m_username->SetValue(cfg->Read(wxT("Username"), wxEmptyString));
-  m_password->SetValue(cfg->Read(wxT("Password"), wxEmptyString));
+
+  bool anonymous = false;
+  cfg->Read(wxT("Anonymous"), &anonymous, false);
+  m_anonymous->SetValue(anonymous);
+  if (anonymous) {
+    m_username->SetValue(wxT("anonymous"));
+    m_password->SetValue(wxT("guest"));
+  } else {
+    m_username->SetValue(cfg->Read(wxT("Username"), wxEmptyString));
+    m_password->SetValue(cfg->Read(wxT("Password"), wxEmptyString));
+  }
+
   m_directory->SetValue(cfg->Read(wxT("Directory"), wxEmptyString));
   cfg->SetPath(old_path);
+  UpdateAnonymousControls();
 }
 
 void FtpSendDialog::SaveSettings() const {
@@ -393,11 +410,26 @@ void FtpSendDialog::SaveSettings() const {
   wxString old_path = cfg->GetPath();
   cfg->SetPath(kFtpConfigPath);
   cfg->Write(wxT("Server"), m_server->GetValue());
+  cfg->Write(wxT("Anonymous"), m_anonymous->GetValue());
   cfg->Write(wxT("Username"), m_username->GetValue());
   cfg->Write(wxT("Password"), m_password->GetValue());
   cfg->Write(wxT("Directory"), m_directory->GetValue());
   cfg->Flush();
   cfg->SetPath(old_path);
+}
+
+void FtpSendDialog::UpdateAnonymousControls() {
+  bool anonymous = m_anonymous && m_anonymous->GetValue();
+  if (anonymous) {
+    m_username->SetValue(wxT("anonymous"));
+    m_password->SetValue(wxT("guest"));
+  }
+  m_username->Enable(!anonymous);
+  m_password->Enable(!anonymous);
+}
+
+void FtpSendDialog::OnAnonymousChanged(wxCommandEvent& event) {
+  UpdateAnonymousControls();
 }
 
 void FtpSendDialog::AppendLog(const wxString& line) {
@@ -407,6 +439,8 @@ void FtpSendDialog::AppendLog(const wxString& line) {
 void FtpSendDialog::OnCancel(wxCommandEvent& event) { EndModal(wxID_CANCEL); }
 
 void FtpSendDialog::OnSend(wxCommandEvent& event) {
+  UpdateAnonymousControls();
+
   wxString host;
   int port = 21;
   if (!ParseServer(m_server->GetValue(), host, port)) {
