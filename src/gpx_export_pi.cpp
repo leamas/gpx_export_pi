@@ -147,7 +147,7 @@ int gpx_export_pi::GetAPIVersionMajor() { return 1; }
 int gpx_export_pi::GetAPIVersionMinor() { return 20; }
 int gpx_export_pi::GetPlugInVersionMajor() { return 0; }
 int gpx_export_pi::GetPlugInVersionMinor() { return 3; }
-int gpx_export_pi::GetPlugInVersionPatch() { return 4; }
+int gpx_export_pi::GetPlugInVersionPatch() { return 6; }
 
 wxBitmap* gpx_export_pi::GetPlugInBitmap() { return &m_panelBitmap; }
 
