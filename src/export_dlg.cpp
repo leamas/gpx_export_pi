@@ -886,7 +886,7 @@ bool GpxExportDialog::BuildSelectedDocument(ExportDocument& doc,
   doc = ExportDocument();
   suggested_name.clear();
 
-  wxString entered_name = m_newNameText ? m_newNameText->GetValue() : wxEmptyString;
+  wxString entered_name = m_newNameText ? m_newNameText->GetValue() : wxString();
   entered_name.Trim(true).Trim(false);
 
   if (m_notebook->GetSelection() == 0) {
