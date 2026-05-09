@@ -76,9 +76,11 @@ set(SRC_GPX_EXPORT
 
 add_library(${PROJECT_NAME} SHARED ${SRC_GPX_EXPORT})
 
-# Drop the "lib" prefix on Unix-like platforms so the file is named
-# gpx_export_pi.so rather than libgpx_export_pi.so, matching OpenCPN plugins.
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+# On Windows OpenCPN plugins are named <plugin>.dll.
+# On Linux/macOS keep CMake's normal lib prefix: lib<plugin>.so/.dylib.
+if(WIN32)
+  set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+endif()
 
 # --- Include paths -----------------------------------------------------------
 target_include_directories(
@@ -159,27 +161,41 @@ configure_file(
 )
 
 # --- Build an OpenCPN Import Plugin tarball ---------------------------------
-# Layout produced:
-#   gpx_export_pi-<version>_<target>-<target-version>/metadata.xml
-#   gpx_export_pi-<version>_<target>-<target-version>/plugins/gpx_export_pi.dll|so|dylib
-#   gpx_export_pi-<version>_<target>-<target-version>/plugins/gpx_export_pi/data/gpx_export_pi.svg
+# The tarball must mirror OpenCPN's system install layout.  On Linux the
+# plugin manager remaps lib/opencpn -> ~/.local/lib/opencpn and
+# share/opencpn -> ~/.local/share/opencpn.  Windows uses the legacy plugins/
+# layout.
 set(TARBALL_BASE "${PLUGIN_NAME}-${PLUGIN_VERSION}_${PKG_TARGET}-${PKG_TARGET_VERSION}")
 set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/${TARBALL_BASE}")
 set(TARBALL_PATH "${CMAKE_CURRENT_BINARY_DIR}/${TARBALL_BASE}.tar.gz")
 
 set(PLUGIN_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
 
+if(WIN32)
+  set(TARBALL_PLUGIN_LIB_DIR "plugins")
+  set(TARBALL_PLUGIN_DATA_DIR "plugins/${PLUGIN_NAME}/data")
+elseif(APPLE)
+  # If you later package a real .app bundle, adjust this to the app-bundle
+  # PlugIns/Resources layout used by OpenCPN on macOS.
+  set(TARBALL_PLUGIN_LIB_DIR "lib/opencpn")
+  set(TARBALL_PLUGIN_DATA_DIR "share/opencpn/plugins/${PLUGIN_NAME}/data")
+else()
+  set(TARBALL_PLUGIN_LIB_DIR "lib/opencpn")
+  set(TARBALL_PLUGIN_DATA_DIR "share/opencpn/plugins/${PLUGIN_NAME}/data")
+endif()
+
 add_custom_target(
   ${PLUGIN_NAME}-tarball
   COMMAND ${CMAKE_COMMAND} -E rm -rf "${STAGING_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}/plugins/${PLUGIN_NAME}/data"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}/${TARBALL_PLUGIN_LIB_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}/${TARBALL_PLUGIN_DATA_DIR}"
   COMMAND ${CMAKE_COMMAND} -E copy "${METADATA_XML}" "${STAGING_DIR}/metadata.xml"
   COMMAND ${CMAKE_COMMAND} -E copy
           "$<TARGET_FILE:${PROJECT_NAME}>"
-          "${STAGING_DIR}/plugins/"
+          "${STAGING_DIR}/${TARBALL_PLUGIN_LIB_DIR}/"
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           "${PLUGIN_DATA_DIR}"
-          "${STAGING_DIR}/plugins/${PLUGIN_NAME}/data"
+          "${STAGING_DIR}/${TARBALL_PLUGIN_DATA_DIR}"
   COMMAND ${CMAKE_COMMAND} -E tar czf
           "${TARBALL_PATH}"
           --
