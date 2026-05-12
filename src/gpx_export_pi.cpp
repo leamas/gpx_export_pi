@@ -2,7 +2,15 @@
  *   GPX Export Plugin for OpenCPN                                         *
  *   Main plugin class - implementation                                    *
  **************************************************************************/
-
+ /*************************************************************************
+ * Copyright (c) 2026 Warren Holybee                                      *
+ *                                                                        *
+ * This program is free software; you can redistribute it and/or modify   *
+ * it under the terms of the GNU General Public License as published by   *
+ * the Free Software Foundation; either version 3 of the License, or      *
+ * (at your option) any later version.                                    *
+ *************************************************************************/
+ 
 #include "gpx_export_pi.h"
 
 #include <wx/filename.h>
@@ -145,9 +153,9 @@ bool gpx_export_pi::DeInit() {
 
 int gpx_export_pi::GetAPIVersionMajor() { return 1; }
 int gpx_export_pi::GetAPIVersionMinor() { return 20; }
-int gpx_export_pi::GetPlugInVersionMajor() { return 0; }
-int gpx_export_pi::GetPlugInVersionMinor() { return 3; }
-int gpx_export_pi::GetPlugInVersionPatch() { return 7; }
+int gpx_export_pi::GetPlugInVersionMajor() { return GPX_VERSION_MAJOR; }
+int gpx_export_pi::GetPlugInVersionMinor() { return GPX_VERSION_MINOR; }
+int gpx_export_pi::GetPlugInVersionPatch() { return GPX_VERSION_PATCH; }
 
 wxBitmap* gpx_export_pi::GetPlugInBitmap() { return &m_panelBitmap; }
 

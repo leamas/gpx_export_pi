@@ -6,7 +6,15 @@
  *   plugin API object types, making GPX generation, naming policies,      *
  *   and destinations independent of the API version.                      *
  **************************************************************************/
-
+ /*************************************************************************
+ * Copyright (c) 2026 Warren Holybee                                      *
+ *                                                                        *
+ * This program is free software; you can redistribute it and/or modify   *
+ * it under the terms of the GNU General Public License as published by   *
+ * the Free Software Foundation; either version 3 of the License, or      *
+ * (at your option) any later version.                                    *
+ *************************************************************************/
+ 
 #ifndef _EXPORT_MODEL_H_
 #define _EXPORT_MODEL_H_
 

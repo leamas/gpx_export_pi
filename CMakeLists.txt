@@ -1,210 +1,131 @@
-# =============================================================================
-# CMakeLists.txt for the GPX Export OpenCPN plugin, in-tree build.
+# ~~~
+# Summary:      Main plugin build script
+# Copyright (c) 2020-2021 Mike Rossiter
+# License:      GPLv3+
+# ~~~
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+# -------- Cmake setup ---------
 #
-# Expected layout:
-#   <opencpn-source>/plugins/gpx_export_pi/CMakeLists.txt
-#   <opencpn-source>/plugins/gpx_export_pi/metadata.xml.in
-#   <opencpn-source>/plugins/gpx_export_pi/src/...
+cmake_minimum_required(VERSION 3.12.0)
+include(${CMAKE_SOURCE_DIR}/cmake/CmakeSetup.cmake NO_POLICY_SCOPE)
+message(STATUS "Cmake version: ${CMAKE_VERSION}.")
+
+
+# -------- Build setup  --------
 #
-# Activate the plugin in the OpenCPN build by adding this line to
-#   <opencpn-source>/plugins/CMakeLists.txt:
-#       add_subdirectory(gpx_export_pi)
+include(PluginOptions)
+if (BUILD_TYPE)
+  message(STATUS "Building: ${BUILD_TYPE}")
+else ()
+  message(STATUS "Configuring")
+endif ()
+
+# -------- Plugin setup ----------
 #
-# Build the OpenCPN-installable tarball with:
-#   cmake --build <build> --target gpx_export_pi-tarball --config <same-as-OCPN>
-# =============================================================================
+include(Plugin.cmake)
 
-cmake_minimum_required(VERSION 3.10)
-project(gpx_export_pi VERSION 0.3.7)
+#------ Local setup e. g. IDE specific stuff --------
+#
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/local_config.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/local_config.cmake)
+endif ()
 
-# File-side name. Used for the DLL/shared-library filename and tarball layout.
-set(PLUGIN_NAME gpx_export_pi)
+# -------- Setup completed, build the plugin --------
+#
+project(${PKG_NAME} VERSION ${PKG_VERSION})
+include(PluginCompiler)
 
-# Display name. This MUST match gpx_export_pi::GetCommonName() exactly.
-set(PLUGIN_DISPLAY_NAME "GPX Export")
+add_library(${CMAKE_PROJECT_NAME} SHARED EXCLUDE_FROM_ALL cmake/dummy.cpp)
+include_directories(BEFORE ${CMAKE_BINARY_DIR}/include)
 
-set(PLUGIN_VERSION ${PROJECT_VERSION})
-set(OCPN_API_VERSION "1.20")
+add_subdirectory("opencpn-libs/${PKG_API_LIB}")
+target_link_libraries(${CMAKE_PROJECT_NAME} ocpn::api)
 
-message(STATUS "")
-message(STATUS "*** Configuring plugin: ${PLUGIN_NAME} ***")
+set(VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(VERSION_PATCH ${PROJECT_VERSION_PATCH})
+if (PROJECT_VERSION_TWEAK STREQUAL "")
+  set(PROJECT_VERSION_TWEAK 0)
+endif ()
 
-# OpenCPN's parent build normally defines these package-target variables.
-# The defaults below make the tarball target usable in simpler in-tree builds,
-# but for official distribution the values should come from OpenCPN's build.
-if(NOT DEFINED PKG_TARGET)
-  if(WIN32)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set(PKG_TARGET "msvc-64")
-    else()
-      set(PKG_TARGET "msvc")
-    endif()
-  elseif(APPLE)
-    set(PKG_TARGET "darwin")
-  else()
-    set(PKG_TARGET "linux")
-  endif()
-endif()
 
-if(NOT DEFINED PKG_TARGET_VERSION)
-  set(PKG_TARGET_VERSION "${CMAKE_SYSTEM_VERSION}")
-endif()
+set(PACKAGE_NAME ${CMAKE_PROJECT_NAME})
 
-if(NOT DEFINED PKG_TARGET_ARCH)
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(PKG_TARGET_ARCH "x86_64")
-  else()
-    set(PKG_TARGET_ARCH "x86")
-  endif()
-endif()
+# Create the minimim ocpn version id string like ov50
+string(REGEX REPLACE "\([0-9]\)\.\([0-9]\).*" "ov\\1\\2"
+       OCPN_MIN_VERSION ${API_OCPN_MIN_VERSION})
 
-set(SRC_GPX_EXPORT
-  src/gpx_export_pi.h
-  src/gpx_export_pi.cpp
-  src/export_model.h
-  src/gpx_writer.h
-  src/gpx_writer.cpp
-  src/xml_util.h
-  src/xml_util.cpp
-  src/name_policy.h
-  src/name_policy.cpp
-  src/gpx_preset.h
-  src/gpx_preset.cpp
-  src/export_dlg.h
-  src/export_dlg.cpp
+if (COMMAND late_init)
+  late_init()
+endif ()
+
+# Configure the flatpak manifest
+file(
+  GLOB manifest ${PROJECT_SOURCE_DIR}/flatpak/org.opencpn.OpenCPN.Plugin.*.yaml
 )
+include(ConfigureManifest)
+configure_manifest(${manifest} _new_manifest)
 
-add_library(${PROJECT_NAME} SHARED ${SRC_GPX_EXPORT})
+# Set up targets. Targets sets up new targets with BUILD_TYPE set to
+# 'flatpak', 'android' or 'tarball'. The initial call without BUILD_TYPE ends
+# here.
+#
+include(Targets)
+create_targets(${_new_manifest})
 
-# On Windows OpenCPN plugins are named <plugin>.dll.
-# On Linux/macOS keep CMake's normal lib prefix: lib<plugin>.so/.dylib.
-if(WIN32)
-  set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-endif()
+if ("${BUILD_TYPE}" STREQUAL "")
+  return ()
+endif ()
 
-# --- Include paths -----------------------------------------------------------
-target_include_directories(
-  ${PROJECT_NAME}
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
 
-# model/include exists in newer OpenCPN builds.
-if(EXISTS "${CMAKE_SOURCE_DIR}/model/include")
-  target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/model/include)
-endif()
+if (NOT ${BUILD_TYPE} STREQUAL "flatpak")
+  target_sources(${CMAKE_PROJECT_NAME} PUBLIC ${SRC})
+  # Build package as required (flatpak already dealt with).
+  #
+  if (APPLE)
+    include(MacosWxwidgets)
+  endif ()
+  include(PluginInstall)
+  if (QT_ANDROID)
+    include(AndroidLibs)
+  else ()
+    include(PluginLibs)
+  endif ()
+  include(PluginLocalization)
 
-if(DEFINED wxWidgets_INCLUDE_DIRS)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${wxWidgets_INCLUDE_DIRS})
-endif()
+  include_directories(BEFORE ${CMAKE_BINARY_DIR}/include)
 
-# --- Compile definitions / language level -----------------------------------
-# MAKING_PLUGIN tells ocpn_plugin.h that this target is building a plugin DLL.
-target_compile_definitions(${PROJECT_NAME} PRIVATE MAKING_PLUGIN)
+  if (COMMAND add_plugin_libraries)
+    add_plugin_libraries()
+  endif ()
 
-if(DEFINED wxWidgets_DEFINITIONS)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE ${wxWidgets_DEFINITIONS})
-endif()
+endif ()
 
-# std::optional is used in the data model; require C++17.
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-
-if(NOT MSVC)
-  set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
-endif()
-
-if(MSVC)
-  # Put the DLL in per-config directories next to opencpn.exe for convenient
-  # local testing from the OpenCPN build tree.
-  set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/Debug"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/Release"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL     "${CMAKE_BINARY_DIR}/MinSizeRel"
-  )
-endif()
-
-# --- Link dependencies -------------------------------------------------------
-if(DEFINED wxWidgets_LIBRARIES)
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${wxWidgets_LIBRARIES})
-endif()
-
-# OpenCPN targets differ across versions/forks. Prefer exported/interface
-# targets where available, then fall back to concrete library targets.
-if(TARGET ocpn::opencpn)
-  message(STATUS "${PLUGIN_NAME}: linking against ocpn::opencpn")
-  target_link_libraries(${PROJECT_NAME} PRIVATE ocpn::opencpn)
-elseif(TARGET _opencpn)
-  message(STATUS "${PLUGIN_NAME}: linking against _opencpn")
-  target_link_libraries(${PROJECT_NAME} PRIVATE _opencpn)
-elseif(TARGET opencpn)
-  message(STATUS "${PLUGIN_NAME}: linking against opencpn")
-  target_link_libraries(${PROJECT_NAME} PRIVATE opencpn)
-elseif(DEFINED PACKAGE_NAME AND TARGET ${PACKAGE_NAME})
-  message(STATUS "${PLUGIN_NAME}: linking against ${PACKAGE_NAME}")
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${PACKAGE_NAME})
-else()
-  message(WARNING
-    "${PLUGIN_NAME}: Could not find ocpn::opencpn, _opencpn, opencpn, or "
-    "PACKAGE_NAME targets. The plugin may fail to link on platforms which "
-    "require unresolved OpenCPN plugin API symbols to be resolved at link time."
-  )
-endif()
-
-# --- Configure metadata.xml from template -----------------------------------
-set(METADATA_XML "${CMAKE_CURRENT_BINARY_DIR}/metadata.xml")
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/metadata.xml.in"
-  "${METADATA_XML}"
+  ${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/include/config.h
   @ONLY
 )
 
-# --- Build an OpenCPN Import Plugin tarball ---------------------------------
-# The tarball must mirror OpenCPN's system install layout.  On Linux the
-# plugin manager remaps lib/opencpn -> ~/.local/lib/opencpn and
-# share/opencpn -> ~/.local/share/opencpn.  Windows uses the legacy plugins/
-# layout.
-set(TARBALL_BASE "${PLUGIN_NAME}-${PLUGIN_VERSION}_${PKG_TARGET}-${PKG_TARGET_VERSION}")
-set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/${TARBALL_BASE}")
-set(TARBALL_PATH "${CMAKE_CURRENT_BINARY_DIR}/${TARBALL_BASE}.tar.gz")
-
-set(PLUGIN_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
-
-if(WIN32)
-  set(TARBALL_PLUGIN_LIB_DIR "plugins")
-  set(TARBALL_PLUGIN_DATA_DIR "plugins/${PLUGIN_NAME}/data")
-elseif(APPLE)
-  # If you later package a real .app bundle, adjust this to the app-bundle
-  # PlugIns/Resources layout used by OpenCPN on macOS.
-  set(TARBALL_PLUGIN_LIB_DIR "lib/opencpn")
-  set(TARBALL_PLUGIN_DATA_DIR "share/opencpn/plugins/${PLUGIN_NAME}/data")
-else()
-  set(TARBALL_PLUGIN_LIB_DIR "lib/opencpn")
-  set(TARBALL_PLUGIN_DATA_DIR "share/opencpn/plugins/${PLUGIN_NAME}/data")
-endif()
-
-add_custom_target(
-  ${PLUGIN_NAME}-tarball
-  COMMAND ${CMAKE_COMMAND} -E rm -rf "${STAGING_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}/${TARBALL_PLUGIN_LIB_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}/${TARBALL_PLUGIN_DATA_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E copy "${METADATA_XML}" "${STAGING_DIR}/metadata.xml"
-  COMMAND ${CMAKE_COMMAND} -E copy
-          "$<TARGET_FILE:${PROJECT_NAME}>"
-          "${STAGING_DIR}/${TARBALL_PLUGIN_LIB_DIR}/"
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          "${PLUGIN_DATA_DIR}"
-          "${STAGING_DIR}/${TARBALL_PLUGIN_DATA_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E tar czf
-          "${TARBALL_PATH}"
-          --
-          "${TARBALL_BASE}"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-  DEPENDS ${PROJECT_NAME}
-  COMMENT "Building plugin tarball: ${TARBALL_PATH}"
-  VERBATIM
+configure_file(
+  # The cloudsmith upload script
+  ${CMAKE_SOURCE_DIR}/ci/upload.sh.in ${CMAKE_BINARY_DIR}/upload.sh
+  @ONLY
+)
+configure_file(
+  # The cloudsmith upload script, windows bat file.
+  ${CMAKE_SOURCE_DIR}/ci/upload.bat.in ${CMAKE_BINARY_DIR}/upload.bat
+  @ONLY
 )
 
-message(STATUS "${PLUGIN_NAME}: configuration complete")
-message(STATUS "")
+set(checksum "@checksum@")
+configure_file(
+  # The XML metadata file
+  ${CMAKE_SOURCE_DIR}/plugin.xml.in
+  ${CMAKE_BINARY_DIR}/${pkg_displayname}.xml.in
+  @ONLY
+)

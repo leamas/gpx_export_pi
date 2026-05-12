@@ -36,5 +36,5 @@ cmake --build <build> --target gpx\_export\_pi-tarball --config <same-as-OCPN>
 
 ## License
 
-GPLv3, consistent with OpenCPN.
+This software is Copyright (c) Warren Holybee 2026. It is distributed under the terms of the Gnu Public License version 3 or, at your option, any later version.
 

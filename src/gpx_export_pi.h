@@ -5,7 +5,15 @@
  *   Provides context-menu-driven GPX export of routes and waypoints       *
  *   using the OpenCPN Plugin API.                                         *
  **************************************************************************/
-
+ /*************************************************************************
+ * Copyright (c) 2026 Warren Holybee                                      *
+ *                                                                        *
+ * This program is free software; you can redistribute it and/or modify   *
+ * it under the terms of the GNU General Public License as published by   *
+ * the Free Software Foundation; either version 3 of the License, or      *
+ * (at your option) any later version.                                    *
+ *************************************************************************/
+ 
 #ifndef _GPX_EXPORT_PI_H_
 #define _GPX_EXPORT_PI_H_
 
@@ -16,6 +24,9 @@
 
 #include "export_model.h"
 
+#define GPX_VERSION_MAJOR 0
+#define GPX_VERSION_MINOR 3
+#define GPX_VERSION_PATCH 8
 // ---------------------------------------------------------------------------
 // Plugin class
 // ---------------------------------------------------------------------------
