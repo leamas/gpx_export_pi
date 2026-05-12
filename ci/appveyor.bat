@@ -22,7 +22,7 @@ if not defined VCINSTALLDIR (
 )
 
 if exist build (rmdir /s /q build)
-mkdir build && cd build
+:: mkdir build && cd build
 
 cmake -A Win32 -G "Visual Studio 17 2022" ^
     -DCMAKE_GENERATOR_PLATFORM=Win32 ^
