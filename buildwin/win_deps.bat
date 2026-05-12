@@ -39,9 +39,6 @@ if errorlevel 1 (
   choco install --version 2.4.2 --no-progress -y poedit
   set "PATH=%PATH%;C:\Program Files (x86)\Poedit\Gettexttools\bin"
 )
-for /f "delims=" %%i in ('where msgmerge') do set "GETTEXT_MSGMERGE_EXECUTABLE=%%i"
-
-echo GETTEXT_MSGMERGE_EXECUTABLE=%GETTEXT_MSGMERGE_EXECUTABLE%
 
 :: Update required python stuff
 ::
