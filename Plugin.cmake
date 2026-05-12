@@ -13,16 +13,16 @@
 # -------- Options ----------
 
 set(OCPN_TEST_REPO
-    "opencpn/gpx_export_pi-alpha"
+    "wholybee/gpx_export_pi-alpha"
     CACHE STRING "Default repository for untagged builds"
 )
 set(OCPN_BETA_REPO
-    "opencpn/gpx_export_pi-beta"
+    "wholybee/gpx_export_pi-beta"
     CACHE STRING
     "Default repository for tagged builds matching 'beta'"
 )
 set(OCPN_RELEASE_REPO
-    "opencpn/gpx_export_pi-prod"
+    "wholybee/gpx_export_pi-prod"
     CACHE STRING
     "Default repository for tagged builds not matching 'beta'"
 )
