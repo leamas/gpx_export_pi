@@ -25,8 +25,8 @@
 #include "export_model.h"
 
 #define GPX_VERSION_MAJOR 0
-#define GPX_VERSION_MINOR 3
-#define GPX_VERSION_PATCH 8
+#define GPX_VERSION_MINOR 4
+#define GPX_VERSION_PATCH 0
 // ---------------------------------------------------------------------------
 // Plugin class
 // ---------------------------------------------------------------------------
