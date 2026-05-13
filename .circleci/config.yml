@@ -1,5 +1,5 @@
 ---
-version: 2.2
+version: 2.1
 
 debian-steps: &debian-steps
   steps:
@@ -294,6 +294,8 @@ std-filters: &std-filters
       ignore:
         - tmp
         - /tmp-.*/
+    tags:
+      only: /^v.*/
 
 workflows:
   version: 2
@@ -303,8 +305,8 @@ workflows:
       - build-flatpak-arm64:
           <<: *std-filters
 
-#      - build-flatpak-x86:
-#          <<: *std-filters
+      - build-flatpak-x86:
+          <<: *std-filters
 
       - build-flatpak-arm64-2408:
           <<: *std-filters
