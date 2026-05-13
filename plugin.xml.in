@@ -3,7 +3,7 @@
 <plugin version="1">
   <name> @PLUGIN_API_NAME@ </name>
   <version> @pkg_semver@ </version>
-  <release> @PROJECT_VERSION_TWEAK@ </release>
+  <release> @PKG_RELEASE@ </release>
   <summary> @PKG_SUMMARY@ </summary>
 
   <api-version> @API_VERSION@ </api-version>
